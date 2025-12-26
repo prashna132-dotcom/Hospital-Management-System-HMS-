@@ -768,7 +768,7 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
     }//GEN-LAST:event_DeleteActionPerformed
 
     private void addActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addActionPerformed
-        // 1. Get raw data from text fields
+        // Get raw data from text fields
         String idStr = idTF.getText().trim();
         String name = nameTF.getText().trim();
         String doc = docNameTF.getText().trim();
@@ -777,14 +777,14 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
         String contact = contactTF.getText().trim();
         String dept = departmentTF.getText().trim();
 
-        // 2. Check for Empty Fields First
+        // Check for Empty Fields First
         if (idStr.isEmpty() || name.isEmpty() || doc.isEmpty() || addr.isEmpty() 
                 || ageStr.isEmpty() || contact.isEmpty() || dept.isEmpty()) {
             JOptionPane.showMessageDialog(this, "All fields are required. Please fill in every box.", "Empty Fields", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 3. Initialize StringBuilder to capture all specific validation errors
+        // Initialize StringBuilder to capture all specific validation errors
         StringBuilder errors = new StringBuilder();
 
         // --- Validate ID ---
@@ -800,17 +800,17 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
             errors.append("- Patient ID must contain only numbers.\n");
         }
 
-        // --- Validate Patient Name ---
+        // Validate Patient Name
         if (!name.matches("^[a-zA-Z\\s]+$")) {
             errors.append("- Patient Name cannot contain numbers or special characters.\n");
         }
 
-        // --- Validate Doctor Name ---
+        // Validate Doctor Name
         if (!doc.matches("^[a-zA-Z\\s\\.]+$")) {
             errors.append("- Doctor Name should only contain letters.\n");
         }
 
-        // --- Validate Age ---
+        // Validate Age
         int age = -1;
         try {
             age = Integer.parseInt(ageStr);
@@ -821,12 +821,12 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
             errors.append("- Age must be a number.\n");
         }
 
-        // --- Validate Contact (10 digits, starts with 98 or 97) ---
+        // Validate Contact (10 digits, starts with 98 or 97)
         if (!contact.matches("^(98|97)\\d{8}$")) {
             errors.append("- Contact must be 10 digits and start with 98 or 97.\n");
         }
 
-        // 4. Final Validation Decision
+        // Final Validation Decision
         if (errors.length() > 0) {
             // Show all errors at once
             JOptionPane.showMessageDialog(this, "The following errors occured:\n" + errors.toString(), 
