@@ -6,6 +6,7 @@ package com.hospitalmanagementsystem.view;
 import java.util.LinkedList;
 import javax.swing.table.DefaultTableModel;
 import com.hospitalmanagementsystem.model.PatientModel;
+import com.hospitalmanagementsystem.controller.PatientController;
 import javax.swing.JOptionPane;
 
 /**
@@ -13,6 +14,9 @@ import javax.swing.JOptionPane;
  * @author Prashna Regmi
  */
 public class hospitalmanagementsystem extends javax.swing.JFrame {
+    
+    // declaration statement:
+    PatientController controller;
     
     // initializing the card layout
     private java.awt.CardLayout cardLayout;
@@ -26,7 +30,10 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
     public hospitalmanagementsystem() {
         initComponents();
         initializeLayout();
-        initializeData();
+        
+        // initializing controller
+        controller = new PatientController();
+        refreshData(); // Replaces initializeData()
     }
     
     private void initializeLayout() {
@@ -45,47 +52,22 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
         cardLayout.show(getContentPane(), screenName);
     }
     
-    // Method to add patient data and populate the table
-    private void registerPatient(PatientModel patient) {
-        patientList.add(patient); // Assuming patientList is a list holding the patient data
+    private void refreshData() {
+        // typecasting
+        DefaultTableModel model = (DefaultTableModel) patientTable.getModel();
+        model.setRowCount(0);
 
-    // Assuming tblPatientList is your JTable for patients
-    DefaultTableModel model = (DefaultTableModel) patientTable.getModel();
-
-    // Adding a new row to the table with the PatientID in the first column, followed by PatientName, then DoctorName
-    model.addRow(new Object[]{
-        String.valueOf(patient.getPatientId()), // PatientID in the first column
-        patient.getPatientName(), // PatientName in the second column
-        patient.getDoctorName(), // DoctorName in the third column
-        patient.getAddress(), 
-        String.valueOf(patient.getAge()), // Convert age to String for the table
-        patient.getContact(), 
-        patient.getDepartment()
-    });
-    }
-    
-    private void initializeData() {
-        patientList = new LinkedList<>();
-
-    // Create a table model with updated column names
-    DefaultTableModel model = new DefaultTableModel(
-        new Object[][]{}, // No initial data
-        new String[]{ // Updated column names
-            "Patient ID", "Patient Name", "Doctor Name", 
-            "Address", "Age", "Contact", "Department"
+        for (PatientModel patient : controller.getAllPatients()) {
+            model.addRow(new Object[]{
+                patient.getPatientId(),
+                patient.getPatientName(),
+                patient.getDoctorName(),
+                patient.getAddress(),
+                patient.getAge(),
+                patient.getContact(),
+                patient.getDepartment()
+            });
         }
-    );
-    patientTable.setModel(model);
-
-        // Example data for the updated table
-        // Correct order according to your constructor (patientId first)
-        registerPatient(new PatientModel(10001, "John Doe", "Dr Unisha", "Pokhara", 20, "9803729956", "Cardiology"));
-        registerPatient(new PatientModel(10002, "Alice Johnson", "Dr Kritika", "Kathmandu", 25, "9876543211", "Neurology"));
-        registerPatient(new PatientModel(10003, "Robert Smith", "Dr Saamin", "Biratnagar", 30, "9801234567", "Orthopedics"));
-        registerPatient(new PatientModel(10004, "Emily Davis", "Dr Prashna", "Butwal", 35, "9812345678", "Pediatrics"));
-        registerPatient(new PatientModel(10005, "Michael Brown", "Dr Suyesh", "Chitwan", 40, "9823456789", "Oncology"));
-        registerPatient(new PatientModel(10006, "Kritika", "Dr Tejash", "Dharan", 28, "9834567890", "Dermatology"));
-        registerPatient(new PatientModel(10007, "David Martinez", "Dr Aayush", "Lalitpur", 50, "9845678901", "Gastroenterology"));
     }
     
     
@@ -653,17 +635,17 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
         String username = usernameTF.getText();
         String password = new String(passwordTF.getPassword());
         
-        // Check if username or password is empty
-        if (username.isEmpty() || password.isEmpty()) {
-            errorLabel.setText("<html>Please enter the username <br/> and password.</html>");
-        } // Check if username and password are incorrect
-        else if (!username.equals("admin") || !password.equals("admin")) {
-            errorLabel.setText("Username and password mismatch.");
-        } // If credentials are correct, proceed to load the main screen
-        else {
-            errorLabel.setText(""); // Clear any previous error messages
-            loadPanel("mainPanel");
+        if (username.isEmpty() || password.isEmpty()){
+            errorLabel.setText("Please enter the username and password.");
         }
+        else if (controller.authenticate(username, password)) {
+            errorLabel.setText(""); 
+            loadPanel("mainPanel");
+            clearTextFields();
+        } else {
+            errorLabel.setText("Username and Password mismatch.");
+        }
+        
     }//GEN-LAST:event_loginButtonActionPerformed
 /**
      * Update the UI by switching to login page and switching the system to default
@@ -677,11 +659,13 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
             "CONFIRMATION",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE
-    );
+        );
 
-    if (response == JOptionPane.YES_OPTION) {
-        loadPanel("loginPanel");
-    }
+        if (response == JOptionPane.YES_OPTION) {
+            loadPanel("loginPanel");
+        }
+        
+        clearTextFields();
     }//GEN-LAST:event_LogoutActionPerformed
         
          // TODO add your handling code here:
@@ -708,14 +692,16 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
 
     private void UpdateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_UpdateActionPerformed
 
+        // Identify which row is selected
         int selectedRow = patientTable.getSelectedRow();
 
+        // Validation: Ensure a row is selected
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "No row selected to update!", "Error", JOptionPane.ERROR_MESSAGE);
-            return; // Stop here if no selection
+            JOptionPane.showMessageDialog(this, "Please select a row from the table to update.", "Error", JOptionPane.ERROR_MESSAGE);
+            return; 
         }
 
-        // Get data from UI fields
+        // Collect and trim data from text fields
         String patientIdStr = idTF.getText().trim();
         String patientName = nameTF.getText().trim();
         String doctorName = docNameTF.getText().trim();
@@ -724,110 +710,160 @@ public class hospitalmanagementsystem extends javax.swing.JFrame {
         String contact = contactTF.getText().trim();
         String department = departmentTF.getText().trim();
 
-        // Check for empty fields
+        // Validation: Ensure no fields are empty
         if (patientIdStr.isEmpty() || patientName.isEmpty() || doctorName.isEmpty() ||
             address.isEmpty() || ageStr.isEmpty() || contact.isEmpty() || department.isEmpty()) {
 
-            JOptionPane.showMessageDialog(this, "Please fill all fields before updating.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please fill all fields before updating.", "Validation Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // Try to convert numbers and update
         try {
+            // Convert String inputs to correct Data Types
             int patientId = Integer.parseInt(patientIdStr);
             int age = Integer.parseInt(ageStr);
 
-            // Update the table view (visual)
-            patientTable.setValueAt(patientId, selectedRow, 0);
-            patientTable.setValueAt(patientName, selectedRow, 1);
-            patientTable.setValueAt(doctorName, selectedRow, 2);
-            patientTable.setValueAt(address, selectedRow, 3);
-            patientTable.setValueAt(age, selectedRow, 4);
-            patientTable.setValueAt(contact, selectedRow, 5);
-            patientTable.setValueAt(department, selectedRow, 6);
-
-            // Update the underlying data list
+            // Create a new Model object with updated data
             PatientModel updatedPatient = new PatientModel(patientId, patientName, doctorName, address, age, contact, department);
-            patientList.set(selectedRow, updatedPatient);
+
+            // calling updatePatient method from the 
+            controller.updatePatient(selectedRow, updatedPatient);
+
+            // Refrehes the table
+            refreshData();
 
             JOptionPane.showMessageDialog(this, "Patient data successfully updated!", "Success", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Invalid ID or Age! Please enter numbers only.", "Error", JOptionPane.ERROR_MESSAGE);
+            // Validation: Handle non-numeric input for ID or Age
+            JOptionPane.showMessageDialog(this, "Invalid input: Patient ID and Age must be numbers.", "Error", JOptionPane.ERROR_MESSAGE);
         }
+        
+        clearTextFields();
     }//GEN-LAST:event_UpdateActionPerformed
 
     private void DeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DeleteActionPerformed
-        // TODO add your handling code here:
-        int selectedRow = patientTable.getSelectedRow(); // Get selected row
+        int selectedRow = patientTable.getSelectedRow();
 
-        if (selectedRow != -1) { // Check if a row is selected
-            // Remove data from the patientList
-            patientList.remove(selectedRow);
+        if (selectedRow != -1) {
+            // Specify the JOptionPane.YES_NO_OPTION to remove the "Cancel" button
+            int response = JOptionPane.showConfirmDialog(
+                    this, 
+                    "Are you sure you want to delete this patient?", 
+                    "Confirm Deletion", 
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+            );
 
-            // Remove data from the table
-            DefaultTableModel model = (DefaultTableModel) patientTable.getModel();
-            model.removeRow(selectedRow);
-
-            JOptionPane.showMessageDialog(this, "Patient removed successfully.", "Success", JOptionPane.ERROR_MESSAGE);
-
+            // Check if the response matches YES_OPTION
+            if (response == JOptionPane.YES_OPTION) {
+                controller.deletePatient(selectedRow);
+                refreshData(); // Updates the table after deletion
+            }
         } else {
-            JOptionPane.showMessageDialog(this, "No patient not selected in the table.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please select a patient from the table first.");
         }
+        
+        clearTextFields();
     }//GEN-LAST:event_DeleteActionPerformed
 
     private void addActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addActionPerformed
-        // 1. Get ALL data as Strings first
-        String patientIdStr = idTF.getText().trim();
-        String patientName = nameTF.getText().trim();
-        String doctorName = docNameTF.getText().trim();
-        String address = addressTF.getText().trim();
+        // 1. Get raw data from text fields
+        String idStr = idTF.getText().trim();
+        String name = nameTF.getText().trim();
+        String doc = docNameTF.getText().trim();
+        String addr = addressTF.getText().trim();
         String ageStr = ageTF.getText().trim();
         String contact = contactTF.getText().trim();
-        String department = departmentTF.getText().trim();
+        String dept = departmentTF.getText().trim();
 
-        //  Validate if any field is empty
-        if (patientIdStr.isEmpty() || patientName.isEmpty() || doctorName.isEmpty() ||
-            address.isEmpty() || ageStr.isEmpty() || contact.isEmpty() || department.isEmpty()) {
-
-            JOptionPane.showMessageDialog(this, "Please fill all the text fields.", "Error", JOptionPane.ERROR_MESSAGE);
-            return; // Stop execution here if fields are empty
+        // 2. Check for Empty Fields First
+        if (idStr.isEmpty() || name.isEmpty() || doc.isEmpty() || addr.isEmpty() 
+                || ageStr.isEmpty() || contact.isEmpty() || dept.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "All fields are required. Please fill in every box.", "Empty Fields", JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
-        //  Try to convert numbers and save
+        // 3. Initialize StringBuilder to capture all specific validation errors
+        StringBuilder errors = new StringBuilder();
+
+        // --- Validate ID ---
+        int id = -1;
         try {
-            // Now it is safe to parse because we know the strings aren't empty
-            int patientId = Integer.parseInt(patientIdStr);
-            int age = Integer.parseInt(ageStr);
-
-            // Create model and save
-            PatientModel patient = new PatientModel(patientId, patientName, doctorName, address, age, contact, department);
-
-            // Call your method to register
-            registerPatient(patient);
-
-            // Success!
-            JOptionPane.showMessageDialog(this, "Your data has been successfully added.", "Success", JOptionPane.INFORMATION_MESSAGE);
-
+            id = Integer.parseInt(idStr);
+            if (id <= 0) {
+                errors.append("- Patient ID must be a positive number.\n");
+            } else if (controller.isIdDuplicate(id)) {
+                errors.append("- Patient ID ").append(id).append(" already exists.\n");
+            }
         } catch (NumberFormatException e) {
-            // This catches if the user typed letters into the ID or Age fields
-            JOptionPane.showMessageDialog(this, "Invalid input: Patient ID and Age must be whole numbers.", "Error", JOptionPane.ERROR_MESSAGE);
+            errors.append("- Patient ID must contain only numbers.\n");
+        }
+
+        // --- Validate Patient Name ---
+        if (!name.matches("^[a-zA-Z\\s]+$")) {
+            errors.append("- Patient Name cannot contain numbers or special characters.\n");
+        }
+
+        // --- Validate Doctor Name ---
+        if (!doc.matches("^[a-zA-Z\\s\\.]+$")) {
+            errors.append("- Doctor Name should only contain letters.\n");
+        }
+
+        // --- Validate Age ---
+        int age = -1;
+        try {
+            age = Integer.parseInt(ageStr);
+            if (age <= 0 || age > 120) {
+                errors.append("- Age must be between 1 and 120.\n");
+            }
+        } catch (NumberFormatException e) {
+            errors.append("- Age must be a number.\n");
+        }
+
+        // --- Validate Contact (10 digits, starts with 98 or 97) ---
+        if (!contact.matches("^(98|97)\\d{8}$")) {
+            errors.append("- Contact must be 10 digits and start with 98 or 97.\n");
+        }
+
+        // 4. Final Validation Decision
+        if (errors.length() > 0) {
+            // Show all errors at once
+            JOptionPane.showMessageDialog(this, "The following errors occured:\n" + errors.toString(), 
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+        } else {
+            // All checks passed! Create model and add
+            PatientModel newPatient = new PatientModel(id, name, doc, addr, age, contact, dept);
+            controller.addPatient(newPatient);
+
+            // Refresh Table and notify user
+            refreshData();
+            JOptionPane.showMessageDialog(this, "Patient added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+
+            clearTextFields();
         }
     }//GEN-LAST:event_addActionPerformed
 
+    public void clearTextFields(){
+        errorLabel.setText("");   
+        idTF.setText("");         
+        nameTF.setText("");       
+        docNameTF.setText("");    
+        addressTF.setText("");    
+        ageTF.setText("");        
+        contactTF.setText("");  
+        departmentTF.setText("");
+        usernameTF.setText("");
+        passwordTF.setText("");
+    }
+    
     private void ClearActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ClearActionPerformed
         // TODO add your handling code here:
         // Clear all text fields
-         errorLabel.setText("");   
-    idTF.setText("");         
-    nameTF.setText("");       
-    docNameTF.setText("");    
-    addressTF.setText("");    
-    ageTF.setText("");        
-    contactTF.setText("");  
-    departmentTF.setText("");
+        clearTextFields();
     }//GEN-LAST:event_ClearActionPerformed
 
+    
     /**
      * @param args the command line arguments
      */
